@@ -4,9 +4,8 @@ from typing import List, Dict, Callable, Optional
 from pathlib import Path
 
 from attacks.attack_runner import AttackRunner
-from attacks.crescendo_attacks import ATTACK_VECTOR_NAMES
-from src.pipeline import DefensePipeline, DefensePipelineWithoutModel
-from evaluation.metrics import compute_summary, detect_refusal
+from src.pipeline import DefensePipelineWithoutModel
+from evaluation.metrics import compute_summary
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,6 @@ class DefenseEvaluator:
             use_input_guard=defense_config.get("use_input_guard", False),
             use_context_monitor=defense_config.get("use_context_monitor", False),
             use_output_guard=defense_config.get("use_output_guard", False),
-            use_system_prompt=defense_config.get("use_system_prompt", False),
         )
 
         def intervene_fn(user_msg: str, model_response: str) -> Dict:
@@ -96,7 +94,6 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": False,
             "use_context_monitor": False,
             "use_output_guard": False,
-            "use_system_prompt": False,
         },
         {
             "name": "defense_input_guard_only",
@@ -104,7 +101,6 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": True,
             "use_context_monitor": False,
             "use_output_guard": False,
-            "use_system_prompt": False,
         },
         {
             "name": "defense_context_monitor_only",
@@ -112,7 +108,6 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": False,
             "use_context_monitor": True,
             "use_output_guard": False,
-            "use_system_prompt": False,
         },
         {
             "name": "defense_output_guard_only",
@@ -120,31 +115,27 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": False,
             "use_context_monitor": False,
             "use_output_guard": True,
-            "use_system_prompt": False,
         },
         {
             "name": "defense_full_pipeline",
-            "description": "Full pipeline: input guard + context monitor + output guard + system prompt",
+            "description": "Full benchmark pipeline: input guard + context monitor + output guard",
             "use_input_guard": True,
             "use_context_monitor": True,
             "use_output_guard": True,
-            "use_system_prompt": True,
         },
         {
             "name": "defense_no_context_monitor",
-            "description": "Pipeline without context monitor (input + output guards + system prompt)",
+            "description": "Pipeline without context monitor (input + output guards)",
             "use_input_guard": True,
             "use_context_monitor": False,
             "use_output_guard": True,
-            "use_system_prompt": True,
         },
         {
             "name": "defense_context_only",
-            "description": "Context monitor + system prompt only",
+            "description": "Context monitor only benchmark variant",
             "use_input_guard": False,
             "use_context_monitor": True,
             "use_output_guard": False,
-            "use_system_prompt": True,
         },
     ]
 

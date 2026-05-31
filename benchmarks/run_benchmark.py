@@ -102,6 +102,35 @@ def generate_simulated_responses() -> Dict[str, str]:
     return simulated
 
 
+def configure_simulated_evaluator(evaluator: DefenseEvaluator) -> callable:
+    simulated = load_or_generate_simulated_responses()
+    current_attack = [""]
+    current_turn = [0]
+
+    def model_fn(msg: str, _sim=simulated, _attack=current_attack, _turn=current_turn) -> str:
+        key = f"{_attack[0]}_turn_{_turn[0]}"
+        _turn[0] += 1
+        if key in _sim:
+            return _sim[key]
+        return "I'd be happy to help with your question about this topic."
+
+    def patched_run_all(model_fn, intervene_fn=None, max_turns=None, verbose=False):
+        current_attack[0] = ""
+        all_results = []
+        for attack in evaluator.attack_runner.attacks:
+            current_attack[0] = attack.name
+            current_turn[0] = 0
+            result = evaluator.attack_runner.run_attack(
+                attack, model_fn, intervene_fn, max_turns
+            )
+            all_results.append(result)
+        return all_results
+
+    evaluator.attack_runner.run_all_attacks = patched_run_all
+    logger.info("Using simulated model responses")
+    return model_fn
+
+
 def run_benchmark(
     defense_configs: Optional[List[Dict]] = None,
     use_simulated: bool = True,
@@ -115,31 +144,7 @@ def run_benchmark(
 
     model_fn = None
     if use_simulated:
-        simulated = load_or_generate_simulated_responses()
-        _current_attack = [""]
-        _current_turn = [0]
-
-        def model_fn(msg: str, _sim=simulated, _attack=_current_attack, _turn=_current_turn) -> str:
-            key = f"{_attack[0]}_turn_{_turn[0]}"
-            _turn[0] += 1
-            if key in _sim:
-                return _sim[key]
-            return "I'd be happy to help with your question about this topic."
-
-        original_run_all = evaluator.attack_runner.run_all_attacks
-        def patched_run_all(model_fn, intervene_fn=None, max_turns=None, verbose=False):
-            _current_attack[0] = ""
-            all_results = []
-            for attack in evaluator.attack_runner.attacks:
-                _current_attack[0] = attack.name
-                _current_turn[0] = 0
-                result = evaluator.attack_runner.run_attack(
-                    attack, model_fn, intervene_fn, max_turns
-                )
-                all_results.append(result)
-            return all_results
-        evaluator.attack_runner.run_all_attacks = patched_run_all
-        logger.info("Using simulated model responses")
+        model_fn = configure_simulated_evaluator(evaluator)
 
     logger.info("=" * 60)
     logger.info("CRESCENDO ATTACK DEFENSE BENCHMARK")
