@@ -24,7 +24,8 @@ def main():
     finetune_parser.add_argument("--model", type=str, default="meta-llama/Llama-3.2-3B-Instruct", help="Base model name")
     finetune_parser.add_argument("--epochs", type=int, default=3, help="Number of training epochs")
     finetune_parser.add_argument("--output", type=str, default="./outputs/safety-finetuned", help="Output directory")
-    finetune_parser.add_argument("--quantize-4bit", action="store_true", default=True, help="Use 4-bit quantization")
+    finetune_parser.add_argument("--no-quantize-4bit", action="store_false", dest="quantize_4bit", help="Disable 4-bit quantization")
+    finetune_parser.set_defaults(quantize_4bit=True)
 
     args = parser.parse_args()
 
@@ -38,6 +39,7 @@ def main():
 
     elif args.command == "evaluate":
         from evaluation.evaluate import DefenseEvaluator, create_default_defense_configs
+        from benchmarks.run_benchmark import configure_simulated_evaluator
         configs = create_default_defense_configs()
         config_map = {
             "baseline": configs[0],
@@ -49,7 +51,8 @@ def main():
         config = config_map.get(args.defense, configs[4])
         logger.info(f"Evaluating: {config['name']}")
         evaluator = DefenseEvaluator()
-        result = evaluator.evaluate_defense(config, model_fn=None, verbose=True)
+        model_fn = configure_simulated_evaluator(evaluator)
+        result = evaluator.evaluate_defense(config, model_fn=model_fn, verbose=True)
         print(f"\nResults for {config['name']}:")
         print(f"  Attack-level ASR: {result['summary']['attack_level_asr']:.3f}")
         print(f"  Turn-level ASR: {result['summary']['turn_level_asr']:.3f}")
