@@ -1,11 +1,14 @@
-import torch
-import json
-import yaml
-from pathlib import Path
-from typing import List, Dict, Optional
+try:
+    import torch
+except ImportError:
+    torch = None
+from typing import List, Dict
 
 DEFAULT_MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
-DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+if torch is None:
+    DEVICE = "cpu"
+else:
+    DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 HARMFUL_TOPICS = [
     "bomb", "explosive", "weapon", "poison", "drug", "meth", "hack",
@@ -30,13 +33,6 @@ CRESCENDO_INDICATORS = [
 
 def get_device():
     return DEVICE
-
-def load_config(config_path: str = "config.yaml") -> dict:
-    path = Path(config_path)
-    if path.exists():
-        with open(path) as f:
-            return yaml.safe_load(f)
-    return {}
 
 def is_harmful_topic(text: str) -> bool:
     text_lower = text.lower()

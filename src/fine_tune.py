@@ -1,19 +1,51 @@
-import torch
 import logging
-from typing import List, Dict, Optional
-from datasets import Dataset
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    TrainingArguments,
-    BitsAndBytesConfig,
-)
-from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_training
-from trl import SFTTrainer
 
-from src.utils import DEVICE, DEFAULT_MODEL_NAME, HARMFUL_TOPICS
+try:
+    import torch
+    from datasets import Dataset
+    from transformers import (
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        TrainingArguments,
+        BitsAndBytesConfig,
+    )
+    from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_training
+    from trl import SFTTrainer
+except ImportError:
+    torch = None
+    Dataset = None
+    AutoModelForCausalLM = None
+    AutoTokenizer = None
+    TrainingArguments = None
+    BitsAndBytesConfig = None
+    LoraConfig = None
+    get_peft_model = None
+    TaskType = None
+    prepare_model_for_kbit_training = None
+    SFTTrainer = None
+
+from src.utils import DEFAULT_MODEL_NAME
 
 logger = logging.getLogger(__name__)
+
+
+def _require_training_dependencies():
+    if None in {
+        torch,
+        Dataset,
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        TrainingArguments,
+        BitsAndBytesConfig,
+        LoraConfig,
+        get_peft_model,
+        TaskType,
+        prepare_model_for_kbit_training,
+        SFTTrainer,
+    }:
+        raise ImportError(
+            "Fine-tuning requires torch, datasets, transformers, peft, and trl to be installed"
+        )
 
 
 SAFETY_TRAINING_DATA = [
@@ -123,6 +155,7 @@ SAFETY_TRAINING_DATA = [
 
 
 def prepare_training_data() -> Dataset:
+    _require_training_dependencies()
     texts = []
     for item in SAFETY_TRAINING_DATA:
         conv = item["conversation"]
@@ -144,6 +177,7 @@ def apply_lora_to_model(
     lora_dropout: float = 0.05,
     use_4bit: bool = True,
 ):
+    _require_training_dependencies()
     bnb_config = None
     if use_4bit and torch.cuda.is_available():
         bnb_config = BitsAndBytesConfig(
@@ -190,6 +224,7 @@ def fine_tune_safety_model(
     max_seq_length: int = 1024,
     use_4bit: bool = True,
 ):
+    _require_training_dependencies()
     logger.info("Preparing training data...")
     dataset = prepare_training_data()
 

@@ -1,6 +1,6 @@
 import re
-from typing import Tuple, List, Optional
-from src.utils import HARMFUL_TOPICS, is_harmful_topic
+from typing import Tuple, List
+from src.utils import is_harmful_topic
 
 
 REFUSAL_PHRASES = [

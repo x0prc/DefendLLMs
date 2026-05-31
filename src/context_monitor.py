@@ -1,6 +1,5 @@
 import re
-from typing import List, Dict, Tuple, Optional
-from collections import deque
+from typing import List, Dict, Optional
 from src.utils import compute_topic_severity, count_crescendo_indicators
 
 

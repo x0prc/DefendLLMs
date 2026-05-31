@@ -1,7 +1,16 @@
-import torch
 import logging
-from typing import List, Dict, Tuple, Optional
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from typing import List, Dict
+
+try:
+    import torch
+except ImportError:
+    torch = None
+
+try:
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+except ImportError:
+    AutoModelForCausalLM = None
+    AutoTokenizer = None
 
 from src.system_prompt import DEFENSIVE_SYSTEM_PROMPT
 from src.input_guard import InputGuard
@@ -10,6 +19,12 @@ from src.output_guard import OutputGuard
 from src.utils import DEVICE, DEFAULT_MODEL_NAME
 
 logger = logging.getLogger(__name__)
+
+
+def _no_grad(func):
+    if torch is None:
+        return func
+    return torch.no_grad()(func)
 
 
 class DefensePipeline:
@@ -30,6 +45,8 @@ class DefensePipeline:
         self.device = device
 
         if load_model:
+            if torch is None or AutoModelForCausalLM is None or AutoTokenizer is None:
+                raise ImportError("Model-backed pipeline requires torch and transformers to be installed")
             logger.info(f"Loading model {model_name} on {device}")
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name,
@@ -82,7 +99,7 @@ class DefensePipeline:
         prompt += "<|ASSISTANT|>\n"
         return prompt
 
-    @torch.no_grad()
+    @_no_grad
     def generate(self, prompt: str, max_new_tokens: int = 512, temperature: float = 0.7) -> str:
         if self.tokenizer is None or self.model is None:
             return "[Model not loaded]"
@@ -189,12 +206,10 @@ class DefensePipelineWithoutModel:
         use_input_guard: bool = True,
         use_context_monitor: bool = True,
         use_output_guard: bool = True,
-        use_system_prompt: bool = True,
     ):
         self.use_input_guard = use_input_guard
         self.use_context_monitor = use_context_monitor
         self.use_output_guard = use_output_guard
-        self.use_system_prompt = use_system_prompt
 
         self.input_guard = InputGuard() if use_input_guard else None
         self.context_monitor = ContextMonitor() if use_context_monitor else None

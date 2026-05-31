@@ -1,6 +1,6 @@
 import re
-from typing import List, Dict, Tuple
-from src.utils import HARMFUL_TOPICS, CRESCENDO_INDICATORS, is_harmful_topic, compute_topic_severity
+from typing import List, Tuple
+from src.utils import CRESCENDO_INDICATORS, is_harmful_topic, compute_topic_severity
 
 
 class InputGuard:
@@ -55,55 +55,6 @@ class InputGuard:
         is_flagged = severity >= self.threshold or len(flags) >= 2
 
         return is_flagged, severity, flags
-
-    def check_conversation_escalation(self, history: List[Dict[str, str]]) -> Tuple[bool, float, List[str]]:
-        if len(history) < 4:
-            return False, 0.0, []
-
-        user_messages = []
-        for msg in history:
-            if msg.get("role") == "user":
-                user_messages.append(msg.get("content", ""))
-
-        if len(user_messages) < 3:
-            return False, 0.0, []
-
-        severities = [compute_topic_severity(msg) for msg in user_messages]
-
-        escalation_trend = 0.0
-        if len(severities) >= 3:
-            first_half = severities[:len(severities)//2]
-            second_half = severities[len(severities)//2:]
-            if first_half and second_half:
-                escalation_trend = sum(second_half)/len(second_half) - sum(first_half)/len(first_half)
-
-        consecutive_increase = sum(
-            1 for i in range(1, len(severities)) if severities[i] > severities[i-1] + 0.1
-        )
-
-        flags = []
-        if escalation_trend > 0.3:
-            flags.append(f"escalation_trend({escalation_trend:.2f})")
-        if consecutive_increase >= 2:
-            flags.append(f"consecutive_severity_increases({consecutive_increase})")
-
-        last_msg = user_messages[-1].lower() if user_messages else ""
-        small_request_patterns = [
-            r"\bjust\b", r"\bquick\b", r"\bsimple\b", r"\beasy\b",
-            r"\bminor\b", r"\bsmall\b", r"\btiny\b", r"\blittle\b",
-            r"\bfirst\b.*\bquestion\b", r"\bnext\b.*\bquestion\b",
-        ]
-        small_request_count = sum(
-            1 for p in small_request_patterns if re.search(p, last_msg)
-        )
-        if small_request_count >= 2:
-            flags.append(f"minimizing_requests({small_request_count})")
-
-        is_flagged = escalation_trend > 0.4 or consecutive_increase >= 3 or len(flags) >= 2
-
-        total_severity = max(0.0, min(1.0, escalation_trend + 0.1 * consecutive_increase))
-
-        return is_flagged, total_severity, flags
 
     def get_intervention_message(self, reason: str = "") -> str:
         base = (
