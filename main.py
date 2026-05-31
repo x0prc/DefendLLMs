@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import sys
-from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -17,7 +15,7 @@ def main():
     benchmark_parser.add_argument("--save", type=str, default=None, help="Save results to JSON file")
 
     eval_parser = subparsers.add_parser("evaluate", help="Evaluate a single defense config")
-    eval_parser.add_argument("--defense", type=str, default="full", choices=["baseline", "input", "context", "output", "full"],
+    eval_parser.add_argument("--defense", type=str, default="full", choices=["baseline", "input", "context", "output", "full", "finetuned"],
                             help="Defense configuration to evaluate")
 
     finetune_parser = subparsers.add_parser("finetune", help="Fine-tune safety model")
@@ -47,11 +45,12 @@ def main():
             "context": configs[2],
             "output": configs[3],
             "full": configs[4],
+            "finetuned": configs[5],
         }
         config = config_map.get(args.defense, configs[4])
         logger.info(f"Evaluating: {config['name']}")
         evaluator = DefenseEvaluator()
-        model_fn = configure_simulated_evaluator(evaluator)
+        model_fn = configure_simulated_evaluator(evaluator, config.get("model_profile", "baseline"))
         result = evaluator.evaluate_defense(config, model_fn=model_fn, verbose=True)
         print(f"\nResults for {config['name']}:")
         print(f"  Attack-level ASR: {result['summary']['attack_level_asr']:.3f}")

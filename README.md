@@ -7,7 +7,7 @@ Minimal benchmark and guard pipeline for Crescendo-style multi-turn jailbreak de
 - `src/`: input, context, and output guards plus the optional model-backed pipeline
 - `attacks/`: Crescendo attack conversations
 - `evaluation/`: ASR and block-rate metrics
-- `benchmarks/`: simulated benchmark runner and cached responses
+- `benchmarks/`: simulated benchmark runner for 10 Crescendo attack vectors
 
 ## Install
 
@@ -29,6 +29,12 @@ Run one defense configuration:
 uv run python main.py evaluate --defense full
 ```
 
+Evaluate the simulated fine-tuned model strategy:
+
+```bash
+uv run python main.py evaluate --defense finetuned
+```
+
 Use the full model-backed pipeline:
 
 ```python
@@ -48,6 +54,6 @@ fine_tune_safety_model(num_epochs=3)
 
 ## Notes
 
-- The benchmark uses cached or simulated responses, so it evaluates the guard logic without loading a model.
+- The benchmark uses simulated responses, so it evaluates both the guard pipeline and a fine-tuned-model strategy without loading a model.
 - System-prompt effects are only part of the full `DefensePipeline`, not the simulated benchmark.
 - Metrics reported by the benchmark are attack-level ASR, turn-level ASR, attack block rate, turn block rate, and per-attack ASR.

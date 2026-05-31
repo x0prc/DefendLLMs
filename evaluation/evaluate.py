@@ -49,6 +49,7 @@ class DefenseEvaluator:
         defense_configs: List[Dict],
         model_fn: Optional[Callable] = None,
         verbose: bool = False,
+        model_fn_factory: Optional[Callable] = None,
     ) -> Dict:
         comparison = {
             "defenses": [],
@@ -57,7 +58,8 @@ class DefenseEvaluator:
 
         for config in defense_configs:
             logger.info(f"Evaluating defense: {config.get('name', 'unnamed')}")
-            result = self.evaluate_defense(config, model_fn, verbose)
+            current_model_fn = model_fn_factory(config, self) if model_fn_factory else model_fn
+            result = self.evaluate_defense(config, current_model_fn, verbose)
             comparison["defenses"].append(result)
             name = config.get("name", "unnamed")
             comparison["comparison_table"][name] = result["summary"]
@@ -94,6 +96,7 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": False,
             "use_context_monitor": False,
             "use_output_guard": False,
+            "model_profile": "baseline",
         },
         {
             "name": "defense_input_guard_only",
@@ -101,6 +104,7 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": True,
             "use_context_monitor": False,
             "use_output_guard": False,
+            "model_profile": "baseline",
         },
         {
             "name": "defense_context_monitor_only",
@@ -108,6 +112,7 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": False,
             "use_context_monitor": True,
             "use_output_guard": False,
+            "model_profile": "baseline",
         },
         {
             "name": "defense_output_guard_only",
@@ -115,6 +120,7 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": False,
             "use_context_monitor": False,
             "use_output_guard": True,
+            "model_profile": "baseline",
         },
         {
             "name": "defense_full_pipeline",
@@ -122,6 +128,15 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": True,
             "use_context_monitor": True,
             "use_output_guard": True,
+            "model_profile": "baseline",
+        },
+        {
+            "name": "fine_tuned_safety_model",
+            "description": "Simulated fine-tuned safety model without external guard pipeline",
+            "use_input_guard": False,
+            "use_context_monitor": False,
+            "use_output_guard": False,
+            "model_profile": "finetuned",
         },
         {
             "name": "defense_no_context_monitor",
@@ -129,6 +144,7 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": True,
             "use_context_monitor": False,
             "use_output_guard": True,
+            "model_profile": "baseline",
         },
         {
             "name": "defense_context_only",
@@ -136,14 +152,6 @@ def create_default_defense_configs() -> List[Dict]:
             "use_input_guard": False,
             "use_context_monitor": True,
             "use_output_guard": False,
+            "model_profile": "baseline",
         },
     ]
-
-
-def load_simulated_responses(path: str) -> Dict[str, str]:
-    """Load simulated model responses for evaluation without GPU."""
-    path_obj = Path(path)
-    if path_obj.exists():
-        with open(path) as f:
-            return json.load(f)
-    return {}

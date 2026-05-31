@@ -21,4 +21,4 @@ env/
 
 # Outputs
 outputs/
-*.json
+benchmarks/results.json

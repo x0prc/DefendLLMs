@@ -2,6 +2,7 @@ import unittest
 
 from attacks.attack_runner import AttackRunner
 from attacks.crescendo_attacks import CrescendoAttackVector
+from evaluation.evaluate import create_default_defense_configs
 from evaluation.metrics import compute_summary
 
 
@@ -21,7 +22,7 @@ class AttackRunnerTests(unittest.TestCase):
         attack = TwoTurnAttack()
         responses = iter([
             "I cannot help with that.",
-            "Here is the answer you asked for.",
+            "Here's how to do it. Step 1: Gather materials. Step 2: Follow the exact procedure.",
         ])
 
         runner = AttackRunner()
@@ -64,7 +65,7 @@ class MetricsTests(unittest.TestCase):
                 },
                 {
                     "model_response": "unsafe raw output",
-                    "response": "Here is a non-refusal answer.",
+                    "response": "Here's how to do it. Step 1: Gather materials. Step 2: Follow the exact procedure.",
                     "intervention": False,
                 },
             ],
@@ -79,6 +80,17 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(summary["defense_effectiveness"]["attack_block_rate"], 0.0)
         self.assertEqual(summary["defense_effectiveness"]["turn_block_rate"], 0.5)
         self.assertEqual(summary["per_attack_asr"]["sample"], 0.5)
+
+
+class SubmissionShapeTests(unittest.TestCase):
+    def test_attack_set_matches_assignment_size(self):
+        runner = AttackRunner()
+        self.assertEqual(len(runner.attacks), 10)
+
+    def test_finetuned_strategy_is_in_benchmark_configs(self):
+        configs = create_default_defense_configs()
+        names = {config["name"] for config in configs}
+        self.assertIn("fine_tuned_safety_model", names)
 
 
 if __name__ == "__main__":
